@@ -1,0 +1,26 @@
+# Python Environment & Cache
+__pycache__/
+*.pyc
+venv/
+.venv/
+mlenv/
+env/
+.env
+
+# Large Files & ML Artifacts
+# (We are hosting these on Hugging Face, so we don't want them in GitHub)
+*.parquet
+*.joblib
+*.csv
+*.json
+
+# dbt Artifacts
+dbt/target/
+dbt/dbt_packages/
+dbt/logs/
+
+# Scratchpads & Trial Files
+scratch/
+archive/
+*test.py
+*draft.py
