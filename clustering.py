@@ -133,7 +133,7 @@ from huggingface_hub import HfApi
 print("\n--- INITIATING CLOUD DEPLOYMENT ---")
 
 # TODO: Add your repo details here
-HF_REPO_ID = "YourUsername/Your-Repo-Name"
+HF_REPO_ID = "LESSONED/comtrade-bucket"
 api = HfApi()
 
 # 1. Export the Pipeline (Model + Scaler)

@@ -167,7 +167,7 @@ best_model = results[best_model_name]['model']
 print(f"🏆 Champion Model: {best_model_name} (MAPE: {results[best_model_name]['mape']:.2f}%)")
 
 # Initialize Hugging Face API
-HF_REPO_ID = "YourUsername/Your-Repo-Name"
+HF_REPO_ID = "LESSONED/comtrade-bucket"
 api = HfApi()
 
 # 1. Dynamic Model Serialization
