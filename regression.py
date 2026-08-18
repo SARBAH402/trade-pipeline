@@ -211,7 +211,7 @@ best_model_pipeline.fit(X_full, y_full)
 print("[OK] Production retraining complete.")
 
 # 2. Initialize Hugging Face API
-HF_REPO_ID = "YourUsername/Your-Repo-Name"
+HF_REPO_ID = "LESSONED/comtrade-bucket"
 api = HfApi()
 
 # 3. Dynamic Model Serialization
