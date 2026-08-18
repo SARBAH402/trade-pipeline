@@ -159,26 +159,45 @@ from huggingface_hub import HfApi
 import json
 from prophet.serialize import model_to_json
 
-# --- PHASE 3: CROWN THE CHAMPION & ZERO-DISK UPLOAD ---
-print("--- INITIATING CLOUD DEPLOYMENT ---")
+# --- PHASE 3: CROWN THE CHAMPION, RETRAIN, & ZERO-DISK UPLOAD ---
+print("--- INITIATING PRODUCTION RETRAINING & CLOUD DEPLOYMENT ---")
 
 best_model_name = min(results, key=lambda k: results[k]['mape'])
 best_model = results[best_model_name]['model']
-print(f"🏆 Champion Model: {best_model_name} (MAPE: {results[best_model_name]['mape']:.2f}%)")
+print(f"🏆 Champion Model: {best_model_name} (Test Set MAPE: {results[best_model_name]['mape']:.2f}%)")
 
-# Initialize Hugging Face API
+# 1. Retrain the Champion on the ENTIRE Dataset (Train + Test)
+print(f"Retraining {best_model_name} on the entire historical dataset for future forecasting...")
+y_full = df_ts['total_value_usd']
+
+if best_model_name == 'SARIMAX':
+    best_model.fit(y_full)
+
+elif best_model_name == 'Prophet':
+    # Prophet requires re-instantiation to fit on new data cleanly
+    prophet_full = df_ts.reset_index()[['trade_date', 'total_value_usd']].rename(
+        columns={'trade_date': 'ds', 'total_value_usd': 'y'}
+    )
+    best_model = Prophet(yearly_seasonality=True, weekly_seasonality=False, daily_seasonality=False)
+    best_model.fit(prophet_full)
+
+elif best_model_name in ['XGBoost', 'LightGBM']:
+    X_full = df_ts[features]
+    best_model.fit(X_full, y_full)
+
+print("[OK] Production retraining complete.")
+
+# 2. Initialize Hugging Face API
 HF_REPO_ID = "LESSONED/comtrade-bucket"
 api = HfApi()
 
-# 1. Dynamic Model Serialization
+# 3. Dynamic Model Serialization
 print(f"Streaming {best_model_name} Model to Hugging Face...")
 if best_model_name == 'Prophet':
-    # Native JSON serialization for Prophet
     model_json = model_to_json(best_model)
     model_buffer = io.BytesIO(model_json.encode('utf-8'))
     filename = "trade_forecast_model.json"
 else:
-    # Joblib serialization for SARIMAX, XGBoost, or LightGBM
     model_buffer = io.BytesIO()
     joblib.dump(best_model, model_buffer)
     filename = "trade_forecast_model.joblib"
@@ -191,10 +210,9 @@ api.upload_file(
     repo_type="model"
 )
 
-# 2. Export the Time-Series Dataframe 
+# 4. Export the Time-Series Dataframe 
 print("Streaming Time-Series dataset to Hugging Face...")
 parquet_buffer = io.BytesIO()
-# Reset index to guarantee the trade_date survives Parquet compression
 export_df = df_ts.reset_index()
 export_df.to_parquet(parquet_buffer, index=False, engine='pyarrow')
 parquet_buffer.seek(0)

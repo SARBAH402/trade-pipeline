@@ -176,7 +176,7 @@ import io
 import joblib
 from huggingface_hub import HfApi
 
-# --- EVALUATION BLOCK (Remains the same) ---
+# --- EVALUATION BLOCK ---
 print("\n--- Final Test Set Evaluation ---")
 test_results = {}
 
@@ -189,47 +189,55 @@ for name, model_pipe in best_models.items():
     test_results[name] = {'RMSE': rmse, 'R2': r2, 'MAE': mae}
     print(f"{name} -> R2: {r2:.4f} | RMSE: {rmse:.4f} | MAE: {mae:.4f}")
 
-# Automatically select the best model based on highest Test R2
+# =====================================================================
+# --- PHASE 3: CROWN THE CHAMPION, RETRAIN, & ZERO-DISK UPLOAD ---
+# =====================================================================
+print("\n--- INITIATING PRODUCTION RETRAINING & CLOUD DEPLOYMENT ---")
+
+# Dynamically find the best model based on the highest R2 score
 best_model_name = max(test_results, key=lambda k: test_results[k]['R2'])
-ultimate_model = best_models[best_model_name]
+best_model_pipeline = best_models[best_model_name]
 
-print(f"\n🏆 Best Model Selected: {best_model_name}")
+print(f"🏆 Champion Model: {best_model_name} (Test Set R2: {test_results[best_model_name]['R2']:.4f})")
+print(f"Retraining {best_model_name} on the complete dataset for production...")
 
-# --- ZERO-DISK HUGGING FACE UPLOAD BLOCK ---
-print("\nInitiating in-memory serialization and cloud stream...")
+# Combine the splits back into full datasets
+X_full = pd.concat([X_train, X_test])
+y_full = pd.concat([y_train, y_test])
 
-# Initialize Hugging Face API
+# Fit the entire pipeline on 100% of the data
+best_model_pipeline.fit(X_full, y_full)
+
+print("[OK] Production retraining complete.")
+
+# 2. Initialize Hugging Face API
+HF_REPO_ID = "YourUsername/Your-Repo-Name"
 api = HfApi()
-# TODO: Replace with your actual Hugging Face username and target repository
-HF_REPO_ID = "LESSONED/comtrade-bucket" 
-# Note: If your environment isn't logged in via `huggingface-cli login`, 
-# you can pass your token directly into the upload_file functions: token="hf_..."
 
-# 1. Serialize the Joblib Model into RAM
+# 3. Dynamic Model Serialization
+print(f"Streaming {best_model_name} Model to Hugging Face...")
 model_buffer = io.BytesIO()
-joblib.dump(ultimate_model, model_buffer)
-model_buffer.seek(0) # Reset the buffer pointer to the beginning of the stream
+joblib.dump(best_model, model_buffer)
+model_buffer.seek(0)
 
-print("Streaming model directly to Hugging Face Hub...")
 api.upload_file(
     path_or_fileobj=model_buffer,
     path_in_repo="trade_pricing_model.joblib",
     repo_id=HF_REPO_ID,
-    repo_type="model" # Or "dataset" depending on how you set up your Hub
+    repo_type="model"
 )
 
-# 2. Serialize the Parquet Features into RAM
+# 4. (Optional) Export the combined feature set if needed for future dashboarding
+print("Streaming feature dataset to Hugging Face...")
 parquet_buffer = io.BytesIO()
-export_df = df_reg.drop(columns=['raw_target_value_usd', 'log_target_value'], errors='ignore')
-export_df.to_parquet(parquet_buffer, index=False, engine='pyarrow')
+X_full.to_parquet(parquet_buffer, index=False, engine='pyarrow')
 parquet_buffer.seek(0)
 
-print("Streaming Parquet feature set to Hugging Face Hub...")
 api.upload_file(
     path_or_fileobj=parquet_buffer,
-    path_in_repo="trade_features.parquet",
+    path_in_repo="trade_pricing_features.parquet",
     repo_id=HF_REPO_ID,
     repo_type="model"
 )
 
-print("✅ Zero-disk upload complete. Artifacts are live and ready for Streamlit consumption.")
+print("✅ Regression artifacts successfully deployed to the Hub.")
