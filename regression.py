@@ -12,10 +12,10 @@ HF_S3_KEY = os.getenv("HF_S3_KEY")
 s3_path = "s3://LESSONED/comtrade-bucket/marts_regression.parquet"
 
 con = duckdb.connect(':memory:')
-con.execute("INSTALL httpfs;")
-con.execute("LOAD httpfs;")
+con.sql("INSTALL httpfs;")
+con.sql("LOAD httpfs;")
 
-con.execute(f"""
+con.sql(f"""
             CREATE SECRET s3_hf(
                 TYPE S3,
                 KEY_ID '{HF_S3_KEY}',
@@ -26,7 +26,7 @@ con.execute(f"""
 
 """)
 
-df_reg = con.execute(f"SELECT * FROM '{s3_path}'").df()
+df_reg = con.sql(f"SELECT * FROM '{s3_path}'").df()
 
 print("Data Loaded Successfully")
 print(df_reg.head())
