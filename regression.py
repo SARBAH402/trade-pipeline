@@ -141,10 +141,10 @@ xgb_params = {
 }
 
 models = {
-    'model__Linear Regression': (lr, lr_params),
-    'model__Ridge Regression': (ridge, ridge_params),
-    'model__Random Forest': (rf, rf_params),
-    'model__XGBoost': (xgb, xgb_params)
+    'Linear Regression': (lr, lr_params),
+    'Ridge Regression': (ridge, ridge_params),
+    'Random Forest': (rf, rf_params),
+    'XGBoost': (xgb, xgb_params)
 }
 
 best_models = {}
@@ -217,7 +217,7 @@ api = HfApi()
 # 3. Dynamic Model Serialization
 print(f"Streaming {best_model_name} Model to Hugging Face...")
 model_buffer = io.BytesIO()
-joblib.dump(best_model, model_buffer)
+joblib.dump(best_model_pipeline, model_buffer)
 model_buffer.seek(0)
 
 api.upload_file(
