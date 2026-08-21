@@ -11,10 +11,10 @@ HF_BUCKET = os.getenv("HF_BUCKET")
 s3_path = "s3://LESSONED/comtrade-bucket/marts_timeseries.parquet"
 
 con = duckdb.connect(database=":memory:")
-con.execute("INSTALL httpfs;")
-con.execute("LOAD httpfs;")
+con.sql("INSTALL httpfs;")
+con.sql("LOAD httpfs;")
 
-con.execute(
+con.sql(
     f"""
     CREATE SECRET hf_s3(
     TYPE S3,
@@ -27,7 +27,7 @@ con.execute(
     """
 )
 
-df_ts = con.execute(f"SELECT * FROM '{s3_path}'").df()
+df_ts = con.sql(f"SELECT * FROM '{s3_path}'").df()
 
 print("DATA LOADED SUCCESSFULLY")
 print(df_ts.head())
