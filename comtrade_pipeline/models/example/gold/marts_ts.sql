@@ -109,8 +109,6 @@ AVG(total_value_usd) OVER (
     ROWS BETWEEN 3 PRECEDING AND 1 PRECEDING
 ) AS predictive_3mo_lag_avg,
 
-
-
 AVG(total_value_usd) OVER (
             PARTITION BY reporter_name, partner_name
             ORDER BY trade_date
